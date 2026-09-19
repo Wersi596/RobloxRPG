@@ -2,10 +2,12 @@ task.wait(2)
 local terrain = workspace.Terrain
 terrain:Clear()
 
-local MAP_SIZE = 40
+local MAP_SIZE = 20 -- Zmniejszamy bezpiecznie na start do 20
 local CELL_SIZE = 4
 local SEED = math.random(1, 100000)
 local WATER_LEVEL = -12
+
+print("VS Code: Rozpoczynam generowanie terenu...")
 
 for x = -MAP_SIZE, MAP_SIZE do
     for z = -MAP_SIZE, MAP_SIZE do
@@ -30,12 +32,14 @@ for x = -MAP_SIZE, MAP_SIZE do
             end
         end
         
-        -- Bezpieczne, wokselowe generowanie wody
         if surfaceY < WATER_LEVEL then
             for wy = surfaceY + CELL_SIZE, WATER_LEVEL, CELL_SIZE do
                 terrain:FillBlock(CFrame.new(realX, wy, realZ), Vector3.new(CELL_SIZE, CELL_SIZE, CELL_SIZE), Enum.Material.Water)
             end
         end
+        
+        -- Kluczowe: pozwala silnikowi oddychać przy każdej kolumnie
+        task.wait()
     end
-    if x % 5 == 0 then task.wait() end
 end
+print("VS Code: Teren gotowy!")
