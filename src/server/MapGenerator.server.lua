@@ -13,7 +13,7 @@ decorFolder.Name = "Decorations"
 decorFolder.Parent = mapFolder
 
 local status = Instance.new("Hint", workspace)
-status.Text = "Generowanie ostatecznego świata..."
+status.Text = "Generowanie stabilnego świata bez jaskiń..."
 
 local MAP_SIZE = 100 
 local CELL_SIZE = 4
@@ -106,75 +106,75 @@ local success, err = pcall(function()
 				baseHeight = baseHeight + (edge * edge * 150)
 			end
 			
+			-- Zabezpieczenie: dno oceanu jest idealnie płaskie (1 klocek pod wodą)
+			if baseHeight < WATER_LEVEL - CELL_SIZE and not isEdgeMountain then
+				baseHeight = WATER_LEVEL - CELL_SIZE
+			end
+			
 			local surfaceY = math.floor(baseHeight / CELL_SIZE) * CELL_SIZE
 			
 			local heatNoise = math.noise(x * 0.018, SEED + 1000, z * 0.018)
 			local moistNoise = math.noise(x * 0.018, SEED + 2000, z * 0.018)
 			
-			-- KLUCZOWA POPRAWKA: Góry brzegowe budują się jako LITY MUR aż do samej podstawy (-60)
-			local maxDepth = isEdgeMountain and -60 or math.max(-60, surfaceY - 30)
+			-- Skrypt buduje tyko skorupę o grubości 4 klocków, chyba że to góry (wtedy murujemy do ziemi)
+			local maxDepth = surfaceY - (CELL_SIZE * 3)
+			if isEdgeMountain then maxDepth = -20 end
 			
 			for y = maxDepth, surfaceY, CELL_SIZE do
-				local caveNoise = isEdgeMountain and 1 or math.noise(x * 0.04, y * 0.04 + SEED, z * 0.04)
+				local p = Instance.new("Part")
+				p.Size = Vector3.new(CELL_SIZE, CELL_SIZE, CELL_SIZE)
+				p.Position = Vector3.new(realX, y, realZ)
+				p.Anchored = true
+				p.Material = Enum.Material.SmoothPlastic
 				
-				if caveNoise < 0.20 then
-					local p = Instance.new("Part")
-					p.Size = Vector3.new(CELL_SIZE, CELL_SIZE, CELL_SIZE)
-					p.Position = Vector3.new(realX, y, realZ)
-					p.Anchored = true
-					p.Material = Enum.Material.SmoothPlastic
-					
-					if y == surfaceY then
-						if isEdgeMountain or y > 60 then
-							p.BrickColor = BrickColor.new("White") 
-						elseif y <= WATER_LEVEL + 4 then
-							p.BrickColor = BrickColor.new("Pastel yellow") 
-						else
-							local randomChance = math.random()
+				if y == surfaceY then
+					if isEdgeMountain or y > 60 then
+						p.BrickColor = BrickColor.new("White") 
+					elseif y <= WATER_LEVEL + CELL_SIZE then
+						p.BrickColor = BrickColor.new("Pastel yellow") 
+					else
+						local randomChance = math.random()
+						
+						if heatNoise > 0.15 and moistNoise < -0.1 then
+							p.BrickColor = BrickColor.new("Deep orange") 
+							if randomChance < 0.01 then spawnModel("Cactus", realX, y, realZ)
+							elseif randomChance < 0.0005 then spawnModel("Pyramid", realX, y, realZ) end
 							
-							if heatNoise > 0.15 and moistNoise < -0.1 then
-								p.BrickColor = BrickColor.new("Deep orange") 
-								-- Zwiększone zagęszczenie na całej mapie
-								if randomChance < 0.01 then spawnModel("Cactus", realX, y, realZ)
-								elseif randomChance < 0.0005 then spawnModel("Pyramid", realX, y, realZ) end
-								
-							elseif heatNoise > 0.15 and moistNoise >= -0.1 then
-								p.BrickColor = BrickColor.new("Lime green") 
-								if randomChance < 0.03 then spawnModel("Bamboo", realX, y, realZ) end
-								
-							elseif heatNoise < -0.15 then
-								p.BrickColor = BrickColor.new("Pastel light blue") 
-								if randomChance < 0.02 then spawnModel("TaigaTree", realX, y, realZ) end
-								
-							elseif heatNoise >= -0.15 and heatNoise <= 0.15 and moistNoise > 0.25 then
-								p.BrickColor = BrickColor.new("Carnation pink") 
-								if randomChance < 0.02 then spawnModel("FairyTree", realX, y, realZ) end
-								
+						elseif heatNoise > 0.15 and moistNoise >= -0.1 then
+							p.BrickColor = BrickColor.new("Lime green") 
+							if randomChance < 0.03 then spawnModel("Bamboo", realX, y, realZ) end
+							
+						elseif heatNoise < -0.15 then
+							p.BrickColor = BrickColor.new("Pastel light blue") 
+							if randomChance < 0.02 then spawnModel("TaigaTree", realX, y, realZ) end
+							
+						elseif heatNoise >= -0.15 and heatNoise <= 0.15 and moistNoise > 0.25 then
+							p.BrickColor = BrickColor.new("Carnation pink") 
+							if randomChance < 0.02 then spawnModel("FairyTree", realX, y, realZ) end
+							
+						else
+							p.BrickColor = BrickColor.new("Bright green") 
+							if moistNoise > 0 then
+								if randomChance < 0.025 then spawnModel("Tree", realX, y, realZ) end
 							else
-								p.BrickColor = BrickColor.new("Bright green") 
-								if moistNoise > 0 then
-									if randomChance < 0.025 then spawnModel("Tree", realX, y, realZ) end
-								else
-									if randomChance < 0.04 then spawnModel("Flower", realX, y, realZ) end
-								end
+								if randomChance < 0.04 then spawnModel("Flower", realX, y, realZ) end
 							end
 						end
-					else
-						p.BrickColor = BrickColor.new("Dark stone grey") 
 					end
-					p.Parent = mapFolder
+				else
+					p.BrickColor = BrickColor.new("Dark stone grey") 
 				end
+				p.Parent = mapFolder
 			end
 			
+			-- Generowanie jednokratkowej wody na płaskim dnie
 			if surfaceY < WATER_LEVEL and not isEdgeMountain then
-				for wy = surfaceY + CELL_SIZE, WATER_LEVEL, CELL_SIZE do
-					terrain:FillBlock(CFrame.new(realX, wy, realZ), Vector3.new(CELL_SIZE, CELL_SIZE, CELL_SIZE), Enum.Material.Water)
-				end
+				terrain:FillBlock(CFrame.new(realX, WATER_LEVEL, realZ), Vector3.new(CELL_SIZE, CELL_SIZE, CELL_SIZE), Enum.Material.Water)
 			end
 		end
 		if x % 2 == 0 then task.wait() end
 		local percent = math.floor(((x + MAP_SIZE) / (MAP_SIZE * 2)) * 100)
-		status.Text = "Budowanie pełnej mapy: " .. percent .. "%"
+		status.Text = "Budowanie litego terenu: " .. percent .. "%"
 	end
 end)
 
