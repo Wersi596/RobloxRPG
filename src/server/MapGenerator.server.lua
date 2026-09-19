@@ -1,4 +1,14 @@
-task.wait(2)
+task.wait(1)
+
+-- 1. TWORZENIE PLATFORMY WIDOKOWEJ DLA GRACZA
+local spawnLoc = Instance.new("SpawnLocation")
+spawnLoc.Size = Vector3.new(20, 2, 20)
+spawnLoc.Position = Vector3.new(0, 250, 0) -- Wysoko w niebie, nad mapą
+spawnLoc.Anchored = true
+spawnLoc.BrickColor = BrickColor.new("Bright yellow")
+spawnLoc.Material = Enum.Material.Neon
+spawnLoc.Parent = workspace
+
 local terrain = workspace.Terrain
 terrain:Clear()
 
@@ -13,7 +23,7 @@ decorFolder.Name = "Decorations"
 decorFolder.Parent = mapFolder
 
 local status = Instance.new("Hint", workspace)
-status.Text = "Generowanie stabilnego świata bez jaskiń..."
+status.Text = "Spójrz w dół! Generowanie świata..."
 
 local MAP_SIZE = 100 
 local CELL_SIZE = 4
@@ -106,7 +116,7 @@ local success, err = pcall(function()
 				baseHeight = baseHeight + (edge * edge * 150)
 			end
 			
-			-- Zabezpieczenie: dno oceanu jest idealnie płaskie (1 klocek pod wodą)
+			-- Zabezpieczenie płaskiego dna na wodę
 			if baseHeight < WATER_LEVEL - CELL_SIZE and not isEdgeMountain then
 				baseHeight = WATER_LEVEL - CELL_SIZE
 			end
@@ -116,7 +126,7 @@ local success, err = pcall(function()
 			local heatNoise = math.noise(x * 0.018, SEED + 1000, z * 0.018)
 			local moistNoise = math.noise(x * 0.018, SEED + 2000, z * 0.018)
 			
-			-- Skrypt buduje tyko skorupę o grubości 4 klocków, chyba że to góry (wtedy murujemy do ziemi)
+			-- Optymalizacja bez jaskiń: ląd ma tylko 4 bloki grubości, góry budujemy lite do samego dołu
 			local maxDepth = surfaceY - (CELL_SIZE * 3)
 			if isEdgeMountain then maxDepth = -20 end
 			
@@ -167,7 +177,6 @@ local success, err = pcall(function()
 				p.Parent = mapFolder
 			end
 			
-			-- Generowanie jednokratkowej wody na płaskim dnie
 			if surfaceY < WATER_LEVEL and not isEdgeMountain then
 				terrain:FillBlock(CFrame.new(realX, WATER_LEVEL, realZ), Vector3.new(CELL_SIZE, CELL_SIZE, CELL_SIZE), Enum.Material.Water)
 			end
@@ -181,7 +190,9 @@ end)
 if not success then
 	status.Text = "BŁĄD: " .. tostring(err)
 else
-	status.Text = "Generowanie zakończone!"
-	task.wait(3)
+	status.Text = "Generowanie zakończone! Trzymaj się, spadasz na dół!"
+	task.wait(2)
+	-- Usuwamy platformę, gracz ląduje na gotowym świecie
+	spawnLoc:Destroy()
 	status:Destroy()
 end
