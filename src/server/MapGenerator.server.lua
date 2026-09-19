@@ -13,14 +13,13 @@ decorFolder.Name = "Decorations"
 decorFolder.Parent = mapFolder
 
 local status = Instance.new("Hint", workspace)
-status.Text = "Generowanie ulepszonego świata RPG..."
+status.Text = "Generowanie ostatecznego świata..."
 
-local MAP_SIZE = 100 -- Powiększono o ~30% (obszar 800x800 studów)
+local MAP_SIZE = 100 
 local CELL_SIZE = 4
 local SEED = math.random(1, 100000)
-local WATER_LEVEL = -4 -- Podniesiono, by zalać naturalne doliny
+local WATER_LEVEL = -4 
 
--- Funkcja generująca modele detali i roślinności
 local function spawnModel(type, x, y, z)
 	if type == "Tree" or type == "FairyTree" or type == "TaigaTree" then
 		local trunk = Instance.new("Part")
@@ -98,7 +97,6 @@ local success, err = pcall(function()
 			local realZ = z * CELL_SIZE
 			
 			local distFromCenter = math.sqrt(x*x + z*z)
-			-- Góry zaczynają się dopiero na skrajach mapy (85% odległości)
 			local isEdgeMountain = distFromCenter > MAP_SIZE * 0.85
 			
 			local baseHeight = math.noise(x * 0.015, SEED, z * 0.015) * 30
@@ -110,14 +108,13 @@ local success, err = pcall(function()
 			
 			local surfaceY = math.floor(baseHeight / CELL_SIZE) * CELL_SIZE
 			
-			-- Optymalna skala biomów dla powiększonej mapy (strefy będą spójne i rozległe)
 			local heatNoise = math.noise(x * 0.018, SEED + 1000, z * 0.018)
 			local moistNoise = math.noise(x * 0.018, SEED + 2000, z * 0.018)
 			
-			local maxDepth = math.max(-60, surfaceY - 40)
+			-- KLUCZOWA POPRAWKA: Góry brzegowe budują się jako LITY MUR aż do samej podstawy (-60)
+			local maxDepth = isEdgeMountain and -60 or math.max(-60, surfaceY - 30)
 			
 			for y = maxDepth, surfaceY, CELL_SIZE do
-				-- W litych górach granicznych nie drążymy jaskiń
 				local caveNoise = isEdgeMountain and 1 or math.noise(x * 0.04, y * 0.04 + SEED, z * 0.04)
 				
 				if caveNoise < 0.20 then
@@ -129,48 +126,47 @@ local success, err = pcall(function()
 					
 					if y == surfaceY then
 						if isEdgeMountain or y > 60 then
-							p.BrickColor = BrickColor.new("White") -- Szczyty i bariery
+							p.BrickColor = BrickColor.new("White") 
 						elseif y <= WATER_LEVEL + 4 then
-							p.BrickColor = BrickColor.new("Pastel yellow") -- Plaże i dno
+							p.BrickColor = BrickColor.new("Pastel yellow") 
 						else
 							local randomChance = math.random()
 							
-							-- Przypisywanie biomów i roślinności
 							if heatNoise > 0.15 and moistNoise < -0.1 then
-								p.BrickColor = BrickColor.new("Deep orange") -- Pustynia
-								if randomChance < 0.005 then spawnModel("Cactus", realX, y, realZ)
-								elseif randomChance < 0.0002 then spawnModel("Pyramid", realX, y, realZ) end
+								p.BrickColor = BrickColor.new("Deep orange") 
+								-- Zwiększone zagęszczenie na całej mapie
+								if randomChance < 0.01 then spawnModel("Cactus", realX, y, realZ)
+								elseif randomChance < 0.0005 then spawnModel("Pyramid", realX, y, realZ) end
 								
 							elseif heatNoise > 0.15 and moistNoise >= -0.1 then
-								p.BrickColor = BrickColor.new("Lime green") -- Dżungla
-								if randomChance < 0.015 then spawnModel("Bamboo", realX, y, realZ) end
+								p.BrickColor = BrickColor.new("Lime green") 
+								if randomChance < 0.03 then spawnModel("Bamboo", realX, y, realZ) end
 								
 							elseif heatNoise < -0.15 then
-								p.BrickColor = BrickColor.new("Pastel light blue") -- Tajga
-								if randomChance < 0.008 then spawnModel("TaigaTree", realX, y, realZ) end
+								p.BrickColor = BrickColor.new("Pastel light blue") 
+								if randomChance < 0.02 then spawnModel("TaigaTree", realX, y, realZ) end
 								
 							elseif heatNoise >= -0.15 and heatNoise <= 0.15 and moistNoise > 0.25 then
-								p.BrickColor = BrickColor.new("Carnation pink") -- Baśniowy
-								if randomChance < 0.008 then spawnModel("FairyTree", realX, y, realZ) end
+								p.BrickColor = BrickColor.new("Carnation pink") 
+								if randomChance < 0.02 then spawnModel("FairyTree", realX, y, realZ) end
 								
 							else
-								p.BrickColor = BrickColor.new("Bright green") -- Równiny i Las
+								p.BrickColor = BrickColor.new("Bright green") 
 								if moistNoise > 0 then
-									if randomChance < 0.008 then spawnModel("Tree", realX, y, realZ) end
+									if randomChance < 0.025 then spawnModel("Tree", realX, y, realZ) end
 								else
-									if randomChance < 0.02 then spawnModel("Flower", realX, y, realZ) end
+									if randomChance < 0.04 then spawnModel("Flower", realX, y, realZ) end
 								end
 							end
 						end
 					else
-						p.BrickColor = BrickColor.new("Dark stone grey") -- Podziemia
+						p.BrickColor = BrickColor.new("Dark stone grey") 
 					end
 					p.Parent = mapFolder
 				end
 			end
 			
-			-- Generowanie fizycznej wody
-			if surfaceY < WATER_LEVEL then
+			if surfaceY < WATER_LEVEL and not isEdgeMountain then
 				for wy = surfaceY + CELL_SIZE, WATER_LEVEL, CELL_SIZE do
 					terrain:FillBlock(CFrame.new(realX, wy, realZ), Vector3.new(CELL_SIZE, CELL_SIZE, CELL_SIZE), Enum.Material.Water)
 				end
@@ -178,14 +174,14 @@ local success, err = pcall(function()
 		end
 		if x % 2 == 0 then task.wait() end
 		local percent = math.floor(((x + MAP_SIZE) / (MAP_SIZE * 2)) * 100)
-		status.Text = "Budowanie powiększonej mapy: " .. percent .. "%"
+		status.Text = "Budowanie pełnej mapy: " .. percent .. "%"
 	end
 end)
 
 if not success then
 	status.Text = "BŁĄD: " .. tostring(err)
 else
-	status.Text = "Generowanie zakończone sukcesem!"
+	status.Text = "Generowanie zakończone!"
 	task.wait(3)
 	status:Destroy()
 end
