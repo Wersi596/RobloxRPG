@@ -30,7 +30,7 @@ local success, err = pcall(function()
                         elseif y > 40 then mat = Enum.Material.Snow
                         else mat = Enum.Material.Grass end
                     elseif y > surfaceY - 12 and mat ~= Enum.Material.Sand then
-                        mat = Enum.Material.Dirt
+                        mat = Enum.Material.Ground
                     end
                     terrain:FillBlock(CFrame.new(realX, y, realZ), Vector3.new(CELL_SIZE, CELL_SIZE, CELL_SIZE), mat)
                 end
